@@ -1,0 +1,7 @@
+{
+    "name": "rezar-84/calendar_systems_d11",
+    "description": "Drupal 11 compatible fork of Calendar Systems module",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "require": {}
+}
