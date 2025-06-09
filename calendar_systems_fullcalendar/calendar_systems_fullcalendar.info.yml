@@ -1,7 +1,7 @@
 name: Calendar Systems Fullcalendar
 type: module
 description: 'Calendar Systems full calendar support.'
-core_version_requirement: ^10
+core_version_requirement: ^10 || ^11
 dependencies:
   - calendar_systems
   - fullcalendar

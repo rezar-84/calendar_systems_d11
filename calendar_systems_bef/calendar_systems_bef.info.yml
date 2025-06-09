@@ -1,7 +1,7 @@
 name: Caledar Systems Better Exposed Filter
 type: module
 description: 'Caledar Systems better exposed filter module support.'
-core_version_requirement: ^10
+core_version_requirement: ^10 || ^11
 dependencies:
   - calendar_systems
   - better_exposed_filters

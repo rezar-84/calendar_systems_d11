@@ -1,7 +1,7 @@
 name: Calendar Systems
 type: module
 description: 'Calendar Systems is a date localization and internationalization module using php-intl.'
-core_version_requirement: ^10
+core_version_requirement: ^10 || ^11
 dependencies:
   - drupal:datetime
 

@@ -38,7 +38,7 @@
     this.$calendar.find('.fullcalendar').once().fullCalendar(this.$options);
 
     $(this.$calendar)
-      .delegate('.fullcalendar-status-close', 'click', function () {
+      .on('.fullcalendar-status-close', 'click', function () {
         $(this).parent().slideUp();
         return false;
       });
