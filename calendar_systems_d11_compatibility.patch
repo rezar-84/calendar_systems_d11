@@ -1,0 +1,44 @@
+--- a/calendar_systems/calendar_systems.info.yml
++++ b/calendar_systems/calendar_systems.info.yml
+@@ -1,7 +1,7 @@
+ name: Calendar Systems
+ type: module
+ description: 'Calendar Systems is a date localization and internationalization module using php-intl.'
+-core_version_requirement: ^10
++core_version_requirement: ^10 || ^11
+ dependencies:
+   - drupal:datetime
+ 
+--- a/calendar_systems/calendar_systems_bef/calendar_systems_bef.info.yml
++++ b/calendar_systems/calendar_systems_bef/calendar_systems_bef.info.yml
+@@ -1,7 +1,7 @@
+ name: Caledar Systems Better Exposed Filter
+ type: module
+ description: 'Caledar Systems better exposed filter module support.'
+-core_version_requirement: ^10
++core_version_requirement: ^10 || ^11
+ dependencies:
+   - calendar_systems
+   - better_exposed_filters
+--- a/calendar_systems/calendar_systems_fullcalendar/calendar_systems_fullcalendar.info.yml
++++ b/calendar_systems/calendar_systems_fullcalendar/calendar_systems_fullcalendar.info.yml
+@@ -1,7 +1,7 @@
+ name: Calendar Systems Fullcalendar
+ type: module
+ description: 'Calendar Systems full calendar support.'
+-core_version_requirement: ^10
++core_version_requirement: ^10 || ^11
+ dependencies:
+   - calendar_systems
+   - fullcalendar
+--- a/calendar_systems/calendar_systems_fullcalendar/calendar_systems_fullcalendar.js
++++ b/calendar_systems/calendar_systems_fullcalendar/calendar_systems_fullcalendar.js
+@@ -38,7 +38,7 @@
+     this.$calendar.find('.fullcalendar').once().fullCalendar(this.$options);
+ 
+     $(this.$calendar)
+-      .delegate('.fullcalendar-status-close', 'click', function () {
++      .on('.fullcalendar-status-close', 'click', function () {
+         $(this).parent().slideUp();
+         return false;
+       });
