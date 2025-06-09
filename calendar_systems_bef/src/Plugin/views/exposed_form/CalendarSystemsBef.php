@@ -10,7 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
  */
 class CalendarSystemsBef extends BetterExposedFilters {
 
-  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state): void {
     parent::buildOptionsForm($form, $form_state);
   }
 
