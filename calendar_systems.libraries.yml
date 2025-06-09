@@ -1,0 +1,14 @@
+picker:
+  version: 1.x
+  js:
+    asset/js/persian-date.min.js: {}
+    asset/js/persian-datepicker.min.js: {}
+    asset/js/calendar-systems.js: {}
+  css:
+    component:
+      asset/css/persian-datepicker.min.css: {}
+      asset/css/calendar-systems.css: {}
+  dependencies:
+    - core/drupalSettings
+    - core/jquery
+    - core/once

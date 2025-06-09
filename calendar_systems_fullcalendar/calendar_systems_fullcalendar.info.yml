@@ -1,0 +1,12 @@
+name: Calendar Systems Fullcalendar
+type: module
+description: 'Calendar Systems full calendar support.'
+core_version_requirement: ^10
+dependencies:
+  - calendar_systems
+  - fullcalendar
+
+# Information added by Drupal.org packaging script on 2023-02-05
+version: '4.0.2'
+project: 'calendar_systems'
+datestamp: 1675630277

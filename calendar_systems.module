@@ -1,0 +1,292 @@
+<?php
+
+define('CALENDAR_SYSTEMS_USE_INTL', FALSE && class_exists('IntlDateFormatter'));
+
+use Drupal\block_content\BlockContentTranslationHandler;
+use Drupal\calendar_systems\CalendarSystems\CalendarSystemsIntlCalendar;
+use Drupal\calendar_systems\CalendarSystems\CalendarSystemsPersianIntlCalendar;
+use Drupal\calendar_systems\CalendarSystems\CalendarSystemsPoorMansGregorianCalendar;
+use Drupal\calendar_systems\CalendarSystems\CalendarSystemsPoorMansJaliliCalendar;
+use Drupal\calendar_systems\Element\CalendarSystemsDate;
+use Drupal\calendar_systems\Element\CalendarSystemsDateList;
+use Drupal\calendar_systems\Element\CalendarSystemsDateTime;
+use Drupal\calendar_systems\Plugin\Field\FieldWidget\CalendarSystemsDateTimeDatelistWidget;
+use Drupal\calendar_systems\Plugin\Field\FieldWidget\CalendarSystemsDateTimeDefaultWidget;
+use Drupal\calendar_systems\Plugin\Field\FieldWidget\CalendarSystemsTimestampDatetimeNoDefaultWidget;
+use Drupal\calendar_systems\Plugin\Field\FieldWidget\CalendarSystemsTimestampDatetimeWidget;
+use Drupal\calendar_systems\Plugin\views\argument\CalendarSystemsDateDate;
+use Drupal\calendar_systems\Plugin\views\argument\CalendarSystemsDateFullDate;
+use Drupal\calendar_systems\Plugin\views\argument\CalendarSystemsViewsDate as CalendarSystemsViewsDate_Arg;
+use Drupal\calendar_systems\Plugin\views\argument\CalendarSystemsViewsFullDate;
+use Drupal\calendar_systems\Plugin\views\filter\CalendarSystemsViewsDate as CalendarSystemsViewsDate_Filter;
+use Drupal\calendar_systems\Plugin\views\filter\CalendarSystemsViewsDateTime;
+use Drupal\calendar_systems\TranslationHack\CalendarSystemsContentTranslationHandler;
+use Drupal\comment\CommentTranslationHandler;
+use Drupal\content_translation\ContentTranslationHandler;
+use Drupal\Core\Datetime\Element\Datelist;
+use Drupal\Core\Render\Element\Date;
+use Drupal\node\NodeTranslationHandler;
+use Drupal\taxonomy\TermTranslationHandler;
+use Drupal\user\ProfileTranslationHandler;
+
+function _calendar_systems_factory($tz = NULL, $lang_code = '', $calendar_name = ''): CalendarSystemsPoorMansGregorianCalendar|CalendarSystemsIntlCalendar|CalendarSystemsPoorMansJaliliCalendar|CalendarSystemsPersianIntlCalendar|null {
+  // COPY FROM common.inc::format_date() (drupal 7).
+  static $drupal_static_fast;
+  if (!isset($drupal_static_fast)) {
+    $drupal_static_fast['timezones'] = [];
+  }
+  $timezones = &$drupal_static_fast['timezones'];
+
+  if (!$tz) {
+    $tz = date_default_timezone_get();
+  }
+  if (is_string($tz)) {
+    if (!isset($timezones[$tz])) {
+      $timezones[$tz] = timezone_open($tz);
+    }
+    $tz = $timezones[$tz];
+  }
+
+  if (!$calendar_name) {
+    $for_lang = Drupal::languageManager()->getCurrentLanguage()->getId();
+    if (count(Drupal::languageManager()->getLanguages()) === 1 || $for_lang === 'fa') {
+      $calendar_name = 'persian';
+    }
+    elseif ($for_lang === 'en') {
+      $calendar_name = 'gregorian';
+    }
+  }
+  if (!$calendar_name) {
+    return NULL;
+  }
+
+  if (!$lang_code) {
+    if (count(Drupal::languageManager()->getLanguages()) === 1) {
+      $lang_code = 'fa';
+    }
+    else {
+      $lang_code = Drupal::languageManager()->getCurrentLanguage()->getId();
+    }
+  }
+
+  if (!CALENDAR_SYSTEMS_USE_INTL) {
+    return match ($calendar_name) {
+      'persian' => new CalendarSystemsPoorMansJaliliCalendar(is_string($tz) ? timezone_open($tz) : $tz, $lang_code),
+      default => new CalendarSystemsPoorMansGregorianCalendar(is_string($tz) ? timezone_open($tz) : $tz, $lang_code),
+    };
+  }
+  else {
+    return match ($calendar_name) {
+      'persian' => new CalendarSystemsPersianIntlCalendar($tz, $calendar_name, $lang_code),
+      default => new CalendarSystemsIntlCalendar($tz, $calendar_name, $lang_code),
+    };
+  }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ *
+ * @param array $entity_types
+ */
+function calendar_systems_entity_type_alter(array &$entity_types): void {
+  $supported = [
+    BlockContentTranslationHandler::class,
+    CommentTranslationHandler::class,
+    ContentTranslationHandler::class,
+    NodeTranslationHandler::class,
+    ProfileTranslationHandler::class,
+    TermTranslationHandler::class,
+  ];
+
+  if (!Drupal::moduleHandler()->moduleExists('content_translation')) {
+    return;
+  }
+
+  /** @var \Drupal\Core\Entity\EntityTypeInterface $type */
+  foreach ($entity_types as $type) {
+    if (!$type->isTranslatable()) {
+      continue;
+    }
+    if (!$type->hasHandlerClass('translation')) {
+      $type->setHandlerClass('translation', CalendarSystemsContentTranslationHandler::class);
+      continue;
+    }
+    $handler = $type->getHandlerClass('translation');
+    if (!in_array($handler, $supported, TRUE)) {
+      continue;
+    }
+    $handler = explode('\\', $handler);
+    $handler = array_pop($handler);
+    $type->setHandlerClass('translation', '\Drupal\calendar_systems\TranslationHack\CalendarSystems' . $handler);
+  }
+}
+
+/**
+ * Implements hook_element_info_alter().
+ *
+ * Swap drupal elements with calendar_systems elements.
+ *
+ * @param array $info
+ */
+function calendar_systems_element_info_alter(array &$info): void {
+
+  $replacement = function ($find_for) {
+    return match ($find_for) {
+      Datelist::class => CalendarSystemsDateList::class,
+      \Drupal\Core\Datetime\Element\Datetime::class => CalendarSystemsDateTime::class,
+      Date::class => CalendarSystemsDate::class,
+      default => NULL,
+    };
+  };
+
+  foreach (['date', 'datelist', 'datetime'] as $element) {
+    if (!isset($info[$element])) {
+      continue;
+    }
+
+    $el = &$info[$element];
+
+    if ($element === 'date' || $element === 'datetime') {
+      $el['#attached']['library'][] = 'calendar_systems/picker';
+    }
+
+    foreach ([
+               '#process',
+               '#pre_render',
+               '#element_validate',
+               '#value_callback',
+             ] as $attr) {
+      if (!isset($el[$attr])) {
+        continue;
+      }
+
+      foreach ($el[$attr] as $ai => &$a) {
+        if (is_array($a)) {
+          $a[0] = $replacement($a[0]) ?: $a[0];
+        }
+        else {
+          $el[$attr][$ai] = $replacement($a) ?: $a;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_field_widget_info_alter().
+ *
+ * @param $info
+ */
+function calendar_systems_field_widget_info_alter(&$info): void {
+  $info['datetime_default']['class'] = CalendarSystemsDateTimeDefaultWidget::class;
+  $info['datetime_datelist']['class'] = CalendarSystemsDateTimeDatelistWidget::class;
+  $info['datetime_timestamp']['class'] = CalendarSystemsTimestampDatetimeWidget::class;
+  if (isset($info['datetime_timestamp_no_default'])) {
+    $info['datetime_timestamp_no_default']['class'] = CalendarSystemsTimestampDatetimeNoDefaultWidget::class;
+  }
+  foreach ([
+             'default',
+             'datelist',
+             'timestamp',
+             'timestamp_no_default',
+           ] as $item) {
+    $info["datetime_$item"]['provider'] = 'calendar_systems';
+  }
+}
+
+/**
+ * Implements hook_views_plugins_filter_alter().
+ *
+ * @param array $plugins
+ */
+function calendar_systems_views_plugins_filter_alter(array &$plugins): void {
+  $plugins['date']['class'] = CalendarSystemsViewsDate_Filter::class;
+  $plugins['datetime']['class'] = CalendarSystemsViewsDatetime::class;
+}
+
+/**
+ * Implements hook_views_plugins_argument_alter().
+ *
+ * @param array $plugins
+ */
+function calendar_systems_views_plugins_argument_alter(array &$plugins): void {
+  if (isset($plugins['datetime'])) {
+    $plugins['datetime']['class'] = CalendarSystemsDateDate::class;
+  }
+  if (isset($plugins['datetime_full_date'])) {
+    $plugins['datetime_full_date']['class'] = CalendarSystemsDateFullDate::class;
+  }
+  if (isset($plugins['date'])) {
+    $plugins['date']['class'] = CalendarSystemsViewsDate_Arg::class;
+  }
+  if (isset($plugins['date_fulldate'])) {
+    $plugins['date_fulldate']['class'] = CalendarSystemsViewsFullDate::class;
+  }
+}
+
+
+function _calendar_systems_tmp_fix_string(?string $value): ?string {
+  if (empty($value)) {
+    return $value;
+  }
+  return strtr($value, [
+    '۰' => '0',
+    '۱' => '1',
+    '۲' => '2',
+    '۳' => '3',
+    '۴' => '4',
+    '۵' => '5',
+    '۶' => '6',
+    '۷' => '7',
+    '۸' => '8',
+    '۹' => '9',
+  ]);
+}
+
+function _calendar_systems_arg_handler_trait_translate($v): string {
+
+  $pass_0 = [
+    'ﻯ' => 'ی',
+    'ﻱ' => 'ی',
+    '٠' => '0',
+    '۱' => '1',
+    '۲' => '2',
+    '۳' => '3',
+    '۴' => '4',
+    '۵' => '5',
+    '۶' => '6',
+    '۷' => '7',
+    '۸' => '8',
+    '۹' => '9',
+    '۰' => '0',
+    '١' => '1',
+    '٢' => '2',
+    '٣' => '3',
+    '٤' => '4',
+    '٥' => '5',
+    '٦' => '6',
+    '٧' => '7',
+    '٨' => '8',
+    '٩' => '9',
+  ];
+  $pass_1 = [
+    'امروز' => 'today',
+    'دیروز' => '-1 day',
+    'فردا' => '+1 day',
+    'پیش' => 'ago',
+    'قبل' => 'last',
+    'بعد' => 'later',
+    'بعدی' => 'next',
+    'ثانیه' => 'second',
+    'دقیقه' => 'minute',
+    'ساعت' => 'hour',
+    'روز' => 'day',
+    'ماه' => 'month',
+    'سال' => 'year',
+    'هفته' => 'week',
+  ];
+  $v = trim($v);
+  $v = strtr($v, $pass_0);
+  $v = strtr($v, $pass_1);
+  return $v;
+}
