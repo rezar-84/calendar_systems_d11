@@ -18,7 +18,7 @@ class CalendarSystemsBef extends BetterExposedFilters {
     parent::validateOptionsForm($form, $form_state);
   }
 
-  public function exposedFormAlter(&$form, FormStateInterface $form_state) {
+  public function exposedFormAlter(&$form, FormStateInterface $form_state): void {
     parent::exposedFormAlter($form, $form_state);
     if (_calendar_systems_factory()->getCalendarName() !== 'persian') {
       return;
