@@ -14,7 +14,7 @@ class CalendarSystemsBef extends BetterExposedFilters {
     parent::buildOptionsForm($form, $form_state);
   }
 
-  public function validateOptionsForm(&$form, FormStateInterface $form_state) {
+  public function validateOptionsForm(&$form, FormStateInterface $form_state): void {
     parent::validateOptionsForm($form, $form_state);
   }
 
