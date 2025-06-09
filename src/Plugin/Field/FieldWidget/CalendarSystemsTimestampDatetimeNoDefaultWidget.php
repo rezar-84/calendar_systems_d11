@@ -62,7 +62,7 @@ class CalendarSystemsTimestampDatetimeNoDefaultWidget extends TimestampDatetimeW
     // $element['value']['#description'] = $this->t('Format: %format. Leave blank for no date.', ['%format' => Datetime::formatExample($date_format . ' ' . $time_format)]);
     $pattern = $date_format . ' ' . $time_format;
     $element['value']['#description'] = $this->t('Format: %format. Leave blank for no date.', [
-    '%format' => \Drupal::service('date.formatter')->getPattern('custom', $pattern)
+     '%format' => \Drupal::service('date.formatter')->getPattern('custom', $pattern)
     ]);
     // Set the callback function to allow interception of the submitted user
     // input and add the default time if needed. It is too late to try this in
